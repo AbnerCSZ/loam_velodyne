@@ -9,9 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   tf)
-
+set(CMAKE_PREFIX_PATH "/usr/local/pcl18")
 find_package(Eigen3 REQUIRED)
-find_package(PCL REQUIRED)
+find_package(PCL  REQUIRED)
 
 include_directories(
   include
@@ -27,7 +27,7 @@ catkin_package(
 )
 
 add_definitions( -march=native )
-
+message(${PCL_INCLUDE_DIRS})
 
 add_subdirectory(src/lib)
 

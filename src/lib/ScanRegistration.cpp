@@ -200,7 +200,7 @@ bool ScanRegistration::setup(ros::NodeHandle& node,
   _imuHistory.ensureCapacity(_config.imuHistorySize);
 
   // subscribe to IMU topic
-  _subImu = node.subscribe<sensor_msgs::Imu>("/imu/data", 50, &ScanRegistration::handleIMUMessage, this);
+  _subImu = node.subscribe<sensor_msgs::Imu>("/imu/data_nowWeuseless", 50, &ScanRegistration::handleIMUMessage, this);
 
 
   // advertise scan registration topics
@@ -331,10 +331,14 @@ void ScanRegistration::extractFeatures(const uint16_t& beginIdx)
 {
   // extract features from individual scans
   size_t nScans = _scanIndices.size();
+ 
   for (size_t i = beginIdx; i < nScans; i++) {
+
     pcl::PointCloud<pcl::PointXYZI>::Ptr surfPointsLessFlatScan(new pcl::PointCloud<pcl::PointXYZI>);
+    
     size_t scanStartIdx = _scanIndices[i].first;
     size_t scanEndIdx = _scanIndices[i].second;
+
 
     // skip empty scans
     if (scanEndIdx <= scanStartIdx + 2 * _config.curvatureRegion) {
@@ -349,6 +353,7 @@ void ScanRegistration::extractFeatures(const uint16_t& beginIdx)
 
     // reset scan buffers
     setScanBuffersFor(scanStartIdx, scanEndIdx);
+   // printf("setScanBuffersFor\n");
 
     // extract features from equally sized scan regions
     for (int j = 0; j < _config.nFeatureRegions; j++) {
@@ -361,7 +366,7 @@ void ScanRegistration::extractFeatures(const uint16_t& beginIdx)
       if (ep <= sp) {
         continue;
       }
-
+    
       size_t regionSize = ep - sp + 1;
 
       // reset region buffers
@@ -391,6 +396,7 @@ void ScanRegistration::extractFeatures(const uint16_t& beginIdx)
         }
       }
 
+       
       // extract flat surface features
       int smallestPickedNum = 0;
       for (int k = 0; k < regionSize && smallestPickedNum < _config.maxSurfaceFlat; k++) {
@@ -408,7 +414,7 @@ void ScanRegistration::extractFeatures(const uint16_t& beginIdx)
           markAsPicked(idx, scanIdx);
         }
       }
-
+ 
       // extract less flat surface features
       for (int k = 0; k < regionSize; k++) {
         if (_regionLabel[k] <= SURFACE_LESS_FLAT) {
@@ -417,6 +423,8 @@ void ScanRegistration::extractFeatures(const uint16_t& beginIdx)
       }
     }
 
+     
+    //printf("before downsize\n");
     // down size less flat surface point cloud of current scan
     pcl::PointCloud<pcl::PointXYZI> surfPointsLessFlatScanDS;
     pcl::VoxelGrid<pcl::PointXYZI> downSizeFilter;
@@ -424,8 +432,14 @@ void ScanRegistration::extractFeatures(const uint16_t& beginIdx)
     downSizeFilter.setLeafSize(_config.lessFlatFilterSize, _config.lessFlatFilterSize, _config.lessFlatFilterSize);
     downSizeFilter.filter(surfPointsLessFlatScanDS);
 
+   // printf("downsize: %ld  to %ld\n", surfPointsLessFlatScan->size(), surfPointsLessFlatScanDS.size());
+    surfPointsLessFlatScan->clear();
     _surfacePointsLessFlat += surfPointsLessFlatScanDS;
+   // printf("_surfacePointsLessFlat:  %ld\n", _surfacePointsLessFlat.size());
+     
   }
+
+
 }
 
 
@@ -544,10 +558,10 @@ void ScanRegistration::publishResult()
 {
   // publish full resolution and feature point clouds
   publishCloudMsg(_pubLaserCloud,            _laserCloud,            _sweepStart, "/camera");
-  publishCloudMsg(_pubCornerPointsSharp,     _cornerPointsSharp,     _sweepStart, "/camera");
-  publishCloudMsg(_pubCornerPointsLessSharp, _cornerPointsLessSharp, _sweepStart, "/camera");
-  publishCloudMsg(_pubSurfPointsFlat,        _surfacePointsFlat,     _sweepStart, "/camera");
-  publishCloudMsg(_pubSurfPointsLessFlat,    _surfacePointsLessFlat, _sweepStart, "/camera");
+  publishCloudMsg(_pubCornerPointsSharp,     _cornerPointsSharp,     _sweepStart, "/camera"); 
+  publishCloudMsg(_pubCornerPointsLessSharp, _cornerPointsLessSharp, _sweepStart, "/camera"); 
+  publishCloudMsg(_pubSurfPointsFlat,        _surfacePointsFlat,     _sweepStart, "/camera"); 
+  publishCloudMsg(_pubSurfPointsLessFlat,    _surfacePointsLessFlat, _sweepStart, "/camera"); 
 
 
   // publish corresponding IMU transformation information

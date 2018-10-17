@@ -131,7 +131,7 @@ bool MultiScanRegistration::setup(ros::NodeHandle& node,
 
   // subscribe to input cloud topic
   _subLaserCloud = node.subscribe<sensor_msgs::PointCloud2>
-      ("/multi_scan_points", 2, &MultiScanRegistration::handleCloudMessage, this);
+      ("/velodyne_points", 2, &MultiScanRegistration::handleCloudMessage, this);
 
   return true;
 }
@@ -158,6 +158,7 @@ void MultiScanRegistration::process(const pcl::PointCloud<pcl::PointXYZ>& laserC
                                     const ros::Time& scanTime)
 {
   size_t cloudSize = laserCloudIn.size();
+  std::cout<<"cloudSize: "<<cloudSize<<std::endl;
 
   // reset internal buffers and set IMU start state based on current scan time
   reset(scanTime);
@@ -229,6 +230,7 @@ void MultiScanRegistration::process(const pcl::PointCloud<pcl::PointXYZ>& laserC
 
     // project point to the start of the sweep using corresponding IMU data
     if (hasIMUData()) {
+      printf("have IMUDATA\n");
       setIMUTransformFor(relTime);
       transformToStartIMU(point);
     }
@@ -247,11 +249,13 @@ void MultiScanRegistration::process(const pcl::PointCloud<pcl::PointXYZ>& laserC
     _scanIndices.push_back(range);
   }
 
+
   // extract features
   extractFeatures();
 
   // publish result
   publishResult();
+ 
 }
 
 } // end namespace loam
